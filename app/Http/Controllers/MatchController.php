@@ -2,13 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use App\Models\User;
+use App\Repositories\Interfaces\CategoryRepositoryInterface;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class MatchController extends Controller
 {
+    protected $categoryRepository;
+    protected $userRepository;
+
+    public function __construct(
+        CategoryRepositoryInterface $categoryRepository,
+        UserRepositoryInterface $userRepository
+    ) {
+        $this->categoryRepository = $categoryRepository;
+        $this->userRepository = $userRepository;
+    }
+
     public function findMatch(Request $request)
     {
         $request->validate([
@@ -28,9 +39,11 @@ class MatchController extends Controller
             // Found a match
             Cache::forget($waitingKey);
             
+            $matchedUser = $this->userRepository->findById($waitingUser);
+            
             return response()->json([
                 'message' => 'Match found!',
-                'matched_user' => User::with('profile')->find($waitingUser),
+                'matched_user' => $matchedUser->load('profile'),
             ]);
         }
 
@@ -64,7 +77,7 @@ class MatchController extends Controller
     public function getCategories()
     {
         return response()->json([
-            'categories' => Category::all(),
+            'categories' => $this->categoryRepository->getAll(),
         ]);
     }
 
@@ -75,12 +88,14 @@ class MatchController extends Controller
             'categories.*' => ['exists:categories,id'],
         ]);
 
-        $user = $request->user();
-        $user->categories()->sync($request->categories);
+        $categories = $this->categoryRepository->syncUserCategories(
+            $request->user()->id,
+            $request->categories
+        );
 
         return response()->json([
             'message' => 'Categories updated successfully',
-            'categories' => $user->categories,
+            'categories' => $categories,
         ]);
     }
 }

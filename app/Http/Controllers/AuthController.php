@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\UserProfile;
+use App\Repositories\Interfaces\UserProfileRepositoryInterface;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +11,17 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    protected $userRepository;
+    protected $userProfileRepository;
+
+    public function __construct(
+        UserRepositoryInterface $userRepository,
+        UserProfileRepositoryInterface $userProfileRepository
+    ) {
+        $this->userRepository = $userRepository;
+        $this->userProfileRepository = $userProfileRepository;
+    }
+
     public function register(Request $request)
     {
         $request->validate([
@@ -19,13 +30,13 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = User::create([
+        $user = $this->userRepository->create([
             'nickname' => $request->nickname,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
         ]);
 
-        UserProfile::create([
+        $this->userProfileRepository->create([
             'user_id' => $user->id,
         ]);
 

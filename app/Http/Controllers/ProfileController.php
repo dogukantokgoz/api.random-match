@@ -2,15 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\UserProfile;
+use App\Repositories\Interfaces\UserProfileRepositoryInterface;
 use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
+    protected $userProfileRepository;
+
+    public function __construct(UserProfileRepositoryInterface $userProfileRepository)
+    {
+        $this->userProfileRepository = $userProfileRepository;
+    }
+
     public function show(Request $request)
     {
+        $profile = $this->userProfileRepository->findByUserId($request->user()->id);
         return response()->json([
-            'profile' => $request->user()->profile,
+            'profile' => $profile,
         ]);
     }
 
@@ -20,35 +28,33 @@ class ProfileController extends Controller
             'avatar_icon' => ['required', 'string'],
         ]);
 
-        $profile = $request->user()->profile;
-        $profile->update([
-            'avatar_icon' => $request->avatar_icon,
-        ]);
+        $profile = $this->userProfileRepository->findByUserId($request->user()->id);
+        $updatedProfile = $this->userProfileRepository->updateAvatar($profile->id, $request->avatar_icon);
 
         return response()->json([
             'message' => 'Avatar updated successfully',
-            'profile' => $profile,
+            'profile' => $updatedProfile,
         ]);
     }
 
-    public function addLike(Request $request, UserProfile $profile)
+    public function addLike(Request $request, $profileId)
     {
-        $profile->addLike();
+        $profile = $this->userProfileRepository->addLike($profileId);
 
         return response()->json([
             'message' => 'Like added successfully',
-            'profile' => $profile->fresh(),
+            'profile' => $profile,
         ]);
     }
 
     public function addExperiencePoint(Request $request)
     {
-        $profile = $request->user()->profile;
-        $profile->addExperiencePoint();
+        $profile = $this->userProfileRepository->findByUserId($request->user()->id);
+        $updatedProfile = $this->userProfileRepository->addExperiencePoint($profile->id);
 
         return response()->json([
             'message' => 'Experience point added successfully',
-            'profile' => $profile->fresh(),
+            'profile' => $updatedProfile,
         ]);
     }
 }
