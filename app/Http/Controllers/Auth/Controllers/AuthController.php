@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth\Controllers;
 
+use App\Http\Controllers\Auth\Requests\RegisterRequest;
+use App\Http\Controllers\Auth\Services\AuthService;
 use App\Repositories\Interfaces\UserProfileRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,41 +14,23 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    
     protected $userRepository;
     protected $userProfileRepository;
-
+    protected $authService;
     public function __construct(
         UserRepositoryInterface $userRepository,
-        UserProfileRepositoryInterface $userProfileRepository
+        UserProfileRepositoryInterface $userProfileRepository,
+        AuthService $authService
     ) {
         $this->userRepository = $userRepository;
         $this->userProfileRepository = $userProfileRepository;
+        $this->authService = $authService;
     }
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $request->validate([
-            'nickname' => ['required', 'string', 'max:255', 'unique:users'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
-
-        $user = $this->userRepository->create([
-            'nickname' => $request->nickname,
-            'email' => $request->email,
-            'password' => $request->password,
-        ]);
-
-        $this->userProfileRepository->create([
-            'user_id' => $user->id,
-        ]);
-
-        Auth::login($user);
-
-        return response()->json([
-            'message' => 'Registration successful',
-            'user' => $user->load('profile'),
-        ]);
+        $this->authService->register($request);
     }
 
     public function login(Request $request)
