@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth\Services;
 
 use App\Repositories\Interfaces\UserProfileRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Interfaces\RandomNicknamesInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,21 +14,26 @@ class AuthService
 {
     protected $userRepository;
     protected $userProfileRepository;
-
+    protected $randomNicknameRepository;
     public function __construct(
         UserRepositoryInterface $userRepository,
-        UserProfileRepositoryInterface $userProfileRepository
+        UserProfileRepositoryInterface $userProfileRepository,
+        RandomNicknamesInterface $randomNicknameRepository  
     ) {
         $this->userRepository = $userRepository;
         $this->userProfileRepository = $userProfileRepository;
+        $this->randomNicknameRepository = $randomNicknameRepository;
     }
 
     public function register($request)
     {
-        dd($request);
+        $randomNickname = $this->randomNicknameRepository->getRandomNickname();
+        
         $user = $this->userRepository->create([
-            'nickname' => $request->nickname,
+            'nickname' => $randomNickname->nickname,
             'email' => $request->email,
+            'age' => $request->age,
+            'gender' => $request->gender,
             'password' => $request->password,
         ]);
 
